@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis Gastos</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mis Gastos">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0f766e">
+<style>
+:root{
+  --bg:#f3f5f7;--card:#fff;--text:#14202b;--muted:#6b7a89;--line:#e3e8ed;
+  --brand:#0f766e;--brand-soft:#d9f2ef;--danger:#c0392b;--warn:#d98e04;--ok:#1f9d55;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0c1318;--card:#16212a;--text:#e8eef3;--muted:#8fa0af;--line:#25323d;
+    --brand:#2dd4bf;--brand-soft:#123c39;--danger:#ff6b5b;--warn:#f5b73b;--ok:#4ade80}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-top:env(safe-area-inset-top)}
+#app{max-width:600px;margin:0 auto;padding:12px 16px calc(170px + env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:4px 0 12px}
+h2{font-size:15px;margin:20px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.muted{color:var(--muted);font-size:13px}
+.big{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.neg{color:var(--danger)}.pos{color:var(--ok)}
+.monthnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.monthnav button{background:var(--card);border:1px solid var(--line);color:var(--text);width:40px;height:40px;border-radius:10px;font-size:18px}
+.monthnav b{text-transform:capitalize;font-size:17px}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0 4px}
+.bar>i{display:block;height:100%;background:var(--brand);border-radius:6px}
+.bar.warn>i{background:var(--warn)}.bar.over>i{background:var(--danger)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mini .v{font-weight:650;font-size:17px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.emoji{width:38px;height:38px;border-radius:10px;background:var(--brand-soft);display:grid;place-items:center;font-size:19px;flex:none}
+.grow{flex:1;min-width:0}
+.grow .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amt{font-weight:650;white-space:nowrap}
+.dayhead{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin:16px 4px 6px;text-transform:capitalize}
+.del{background:none;border:0;color:var(--muted);font-size:18px;padding:6px}
+.chk{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:16px;flex:none}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.pill{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--brand-soft);color:var(--brand);font-weight:600}
+.pill.alta{background:#fde4e1;color:#b3261e}.pill.media{background:#fdf1d6;color:#8a5a00}
+.done .t{text-decoration:line-through;color:var(--muted)}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:12px;padding:12px 16px;font-size:16px;font-weight:600;width:100%}
+.btn.sec{background:var(--card);color:var(--text);border:1px solid var(--line)}
+.fab{position:fixed;right:20px;bottom:calc(78px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;
+  background:var(--brand);color:#fff;border:0;font-size:30px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border:0;padding:8px 0 10px;color:var(--muted);font-size:11px}
+nav button span{display:block;font-size:22px}
+nav button.on{color:var(--brand);font-weight:700}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+.sheet{background:var(--card);width:100%;max-width:600px;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+.sheet h3{margin:0 0 12px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:17px}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cats button{border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:99px;padding:8px 12px;font-size:14px}
+.cats button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+.catrow{margin:10px 0}
+.catrow .row{font-size:14px}
+/* JARVIS */
+/* Icono minimalista: anillo fino + punto central; el color indica el estatus */
+.orb{position:relative;width:64px;height:64px;border-radius:50%;flex:none;--oc:#22c55e;box-sizing:border-box;
+  background:var(--card);border:2px solid var(--oc);box-shadow:0 4px 14px rgba(0,0,0,.2);
+  box-shadow:0 4px 14px rgba(0,0,0,.2),0 0 0 5px color-mix(in srgb,var(--oc) 14%,transparent)}
+.orb::before{content:"";position:absolute;inset:0;margin:auto;width:32%;height:32%;border-radius:50%;background:var(--oc)}
+.orb::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--oc);opacity:0;animation:ripple 2.8s infinite ease-out}
+.orb.yellow{--oc:#f59e0b}.orb.red{--oc:#ef4444}
+@keyframes ripple{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.5);opacity:0}}
+.orb.xs{width:20px;height:20px;border-width:1.5px;box-shadow:none;display:inline-block;vertical-align:-5px}
+.orb.xs::after{display:none}
+@media (prefers-reduced-motion:reduce){.orb::after{animation:none}}
+/* Barras de desplazamiento discretas */
+:root{color-scheme:light dark}
+*{scrollbar-width:thin;scrollbar-color:rgba(127,140,152,.38) transparent}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(127,140,152,.38);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:rgba(127,140,152,.65)}
+::-webkit-scrollbar-corner{background:transparent}
+.jhead{display:flex;gap:14px;align-items:center}
+.jhead .name{font-size:12px;letter-spacing:.2em;color:var(--muted);font-weight:700}
+.jhead .hl{font-size:18px;font-weight:650;line-height:1.25}
+.alert{display:flex;gap:12px;padding:12px;border-radius:12px;border:1px solid var(--line);border-left:5px solid var(--brand);background:var(--card);margin-bottom:10px}
+.alert.danger{border-left-color:var(--danger)}.alert.warn{border-left-color:var(--warn)}.alert.ok{border-left-color:var(--ok)}
+.alert .ai{font-size:22px;line-height:1.2}.alert b{display:block;margin-bottom:2px}.alert span{font-size:14px;color:var(--muted)}
+.jbanner{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;margin-bottom:12px;font-size:14px;
+  background:var(--card);border:1px solid var(--line);border-left:5px solid var(--ok)}
+.jbanner.warn{border-left-color:var(--warn)}.jbanner.danger{border-left-color:var(--danger)}
+.badge{display:inline-block;min-width:16px;padding:0 5px;border-radius:99px;background:var(--danger);color:#fff;font-size:10px;line-height:16px;margin-left:2px;vertical-align:top}
+.orb.sm{width:34px;height:34px;border-width:1.5px;box-shadow:none}.orb.sm::after{display:none}
+/* JARVIS flotante */
+#jBtn{position:fixed;right:18px;bottom:calc(146px + env(safe-area-inset-bottom));z-index:15;background:none;border:0;padding:0;cursor:pointer}
+#jBtn .orb{width:56px;height:56px}
+#jBtn .badge{position:absolute;top:-4px;right:-4px;font-style:normal;margin:0;box-shadow:0 0 0 2px var(--bg)}
+#jBtn .badge:empty{display:none}
+#jPop{position:fixed;right:84px;bottom:calc(152px + env(safe-area-inset-bottom));z-index:14;max-width:210px;display:none;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 26px 10px 12px;font-size:13.5px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+#jPop.on{display:block}
+#jPop p{margin:0;cursor:pointer}
+#jPop .x{position:absolute;top:4px;right:9px;color:var(--muted);cursor:pointer;font-size:13px}
+#jPanel{position:fixed;left:12px;right:12px;margin:0 auto;max-width:460px;bottom:calc(76px + env(safe-area-inset-bottom));height:min(70vh,580px);z-index:30;
+  background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.35);display:none;flex-direction:column;overflow:hidden}
+#jPanel.on{display:flex}
+.jh{display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.jh h3{margin:0;font-size:16px;letter-spacing:.14em}
+.jh p{margin:0;font-size:12px;color:var(--muted)}
+.jh p i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:5px}
+.jh button{margin-left:auto;background:none;border:0;color:var(--muted);font-size:18px;padding:6px 8px}
+#jChat{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.jm{max-width:94%;font-size:14px;line-height:1.5}
+.jm.yo{align-self:flex-end;background:var(--brand);color:#fff;padding:8px 12px;border-radius:14px 14px 4px 14px}
+.jm.ia{align-self:flex-start;background:var(--bg);border:1px solid var(--line);padding:10px 12px;border-radius:14px 14px 14px 4px}
+.jm.ia p{margin:0 0 8px}.jm.ia p:last-child{margin:0}
+.jm ul{margin:6px 0 0;padding-left:18px}
+.jm .kv{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding:4px 0;font-size:13.5px}
+.jm .alert{margin:8px 0 0;padding:8px 10px;font-size:13px}
+.jacc{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.jacc button{background:none;border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 11px;font-size:13px}
+#jFoot{border-top:1px solid var(--line);padding:8px 10px}
+#jSug{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
+#jSug::-webkit-scrollbar{display:none}
+#jSug button{flex:none;border:1px solid var(--line);background:none;color:var(--muted);border-radius:99px;padding:6px 11px;font-size:13px}
+.jrow{display:flex;gap:8px}.jrow input{flex:1;min-width:0}
+.jrow button{width:46px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-size:18px}
+.donut{display:flex;gap:12px;align-items:center}.legend{flex:1;min-width:0}
+.lg{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}.lg i{width:10px;height:10px;border-radius:3px;flex:none}.lg span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row h1{margin:4px 0 12px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav id="nav"></nav>
+<script>
+"use strict";
+// ---------- Datos ----------
+const CATS = [
+  ["Comida","🍽️"],["Mercado","🛒"],["Transporte","🚌"],["Hogar","🏠"],["Salud","💊"],
+  ["Ocio","🎬"],["Ropa","👕"],["Educación","📚"],["Compras","🛍️"],["Otros","🧾"]
+];
+const catIcon = n => (CATS.find(c=>c[0]===n)||["","🧾"])[1];
+const KEY = "misgastos.v1";
+const today = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const defaults = () => ({income:0,savePct:20,alertPct:80,caps:{},credits:[],expenses:[],fixed:[],paid:{},wish:[]});
+let S;
+try { S = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY)||"{}")); } catch(e){ S = defaults(); }
+const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+let tab = "resumen";
+let month = today().slice(0,7); // YYYY-MM
+
+// ---------- Utilidades ----------
+const cop = n => "$" + Math.round(n||0).toLocaleString("es-CO");
+const esc = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const monthLabel = m => { const [y,mo]=m.split("-"); return new Date(y,mo-1,1).toLocaleDateString("es-CO",{month:"long",year:"numeric"}); };
+const shiftMonth = (m,d) => { const [y,mo]=m.split("-").map(Number); const dt=new Date(y,mo-1+d,1); return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0"); };
+const dayLabel = d => { const dt=new Date(d+"T00:00:00"); if(d===today()) return "Hoy"; return dt.toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"short"}); };
+const monthExpenses = () => S.expenses.filter(e=>e.date.startsWith(month));
+const sum = a => a.reduce((t,x)=>t+x,0);
+
+// ---------- Compras a crédito: monto financiado, meses y cuota mensual ----------
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const mDiff = (a,b) => { const [ya,ma]=a.split("-").map(Number), [yb,mb]=b.split("-").map(Number); return (yb-ya)*12+(mb-ma); };
+const cuota = c => +c.cuota || (+c.total/Math.max(1,+c.months));
+const credActivo = (c,m) => { const d = mDiff(c.start,m); return d>=0 && d<+c.months; };
+const cuotasEn = m => sum((S.credits||[]).filter(c=>credActivo(c,m)).map(cuota));
+const credRestantes = (c,m) => Math.max(0, +c.months - Math.min(Math.max(mDiff(c.start,m),0), +c.months));
+
+function calc(){
+  const income = +S.income||0;
+  const saving = income*(+S.savePct||0)/100;
+  const cuotas = cuotasEn(month);                      // cuotas de crédito que se cobran este mes
+  const fixedTotal = sum(S.fixed.map(f=>+f.amount)) + cuotas;
+  const budget = income - saving - fixedTotal;         // disponible para gastos variables
+  const spent = sum(monthExpenses().map(e=>+e.amount));
+  return {income,saving,fixedTotal,cuotas,budget,spent,left:budget-spent};
+}
+
+// ---------- Render ----------
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = ({resumen:vResumen,panel:vPanel,gastos:vGastos,fijos:vFijos,compras:vCompras})[tab]();
+  document.getElementById("nav").innerHTML = [
+    ["resumen","📊","Resumen"],["panel","📈","Panel"],["gastos","💸","Gastos"],["fijos","📌","Fijos"],["compras","🛍️","Compras"]
+  ].map(([k,i,l])=>`<button class="${tab===k?"on":""}" onclick="go('${k}')"><span>${i}</span>${l}</button>`).join("");
+  jRefresh();
+  window.scrollTo(0,0);
+}
+window.go = t => { tab=t; render(); };
+
+const monthNav = () => `<div class="monthnav">
+  <button onclick="chMonth(-1)">‹</button><b>${monthLabel(month)}</b><button onclick="chMonth(1)">›</button></div>`;
+window.chMonth = d => { month = shiftMonth(month,d); render(); };
+
+function vResumen(){
+  const c = calc();
+  const pct = c.budget>0 ? Math.min(100, c.spent/c.budget*100) : (c.spent>0?100:0);
+  const cls = pct>=100 ? "over" : pct>=80 ? "warn" : "";
+  const byCat = {};
+  monthExpenses().forEach(e=>byCat[e.cat]=(byCat[e.cat]||0)+ +e.amount);
+  const cats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const paidIds = S.paid[month]||[];
+  const fixedPaid = sum(S.fixed.filter(f=>paidIds.includes(f.id)).map(f=>+f.amount));
+  const msg = c.income<=0 ? "Configura tu ingreso para ver tu presupuesto." :
+    c.left<0 ? "Te pasaste del presupuesto del mes." :
+    pct>=80 ? "Cuidado: ya usaste más del 80%." : "Vas bien con tu presupuesto.";
+  const J = jarvis(), top = J.alerts[0];
+  const banner = top ? `<div class="jbanner ${top.lvl}" onclick="jOpen()">
+      <i class="orb xs ${top.lvl==="danger"?"red":top.lvl==="warn"?"yellow":""}"></i><div><b>JARVIS:</b> ${esc(top.title)}<div class="muted">Toca para hablar con JARVIS</div></div></div>` : "";
+  return `<h1>Resumen</h1>${banner}${monthNav()}
+  <div class="card">
+    <div class="muted">Te queda para gastar</div>
+    <div class="big ${c.left<0?"neg":""}">${cop(c.left)}</div>
+    <div class="bar ${cls}"><i style="width:${pct}%"></i></div>
+    <div class="row muted"><span>Gastado ${cop(c.spent)}</span><span>de ${cop(c.budget)}</span></div>
+    <div class="muted" style="margin-top:8px">${msg}</div>
+  </div>
+  <div class="grid2">
+    <div class="mini"><div class="muted">Ingreso mensual</div><div class="v">${cop(c.income)}</div></div>
+    <div class="mini"><div class="muted">Ahorro (${+S.savePct||0}%)</div><div class="v pos">${cop(c.saving)}</div></div>
+    <div class="mini"><div class="muted">Fijos y cuotas</div><div class="v">${cop(c.fixedTotal)}</div><div class="muted">${c.cuotas?`incl. cuotas ${cop(c.cuotas)}`:`pagados ${cop(fixedPaid)}`}</div></div>
+    <div class="mini"><div class="muted">Presupuesto variable</div><div class="v">${cop(c.budget)}</div></div>
+  </div>
+  ${dailyCards()}
+  <button class="btn sec" style="margin-top:12px" onclick="sheetConfig()">⚙️ Configuración, topes y Excel</button>
+  <h2>Por categoría</h2>
+  <div class="card">${cats.length ? cats.map(([n,v])=>`<div class="catrow">
+      <div class="row"><span>${catIcon(n)} ${esc(n)}</span><b>${cop(v)}</b></div>
+      <div class="bar"><i style="width:${c.spent?v/c.spent*100:0}%"></i></div></div>`).join("")
+    : `<div class="empty">Aún no hay gastos este mes.</div>`}</div>`;
+}
+
+function vGastos(){
+  const list = monthExpenses().sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const days = {};
+  list.forEach(e=>(days[e.date]=days[e.date]||[]).push(e));
+  const total = sum(list.map(e=>+e.amount));
+  return `<h1>Gastos</h1>${monthNav()}
+  <div class="card row"><span class="muted">Total del mes</span><b>${cop(total)}</b></div>
+  ${list.length ? Object.entries(days).map(([d,items])=>`
+    <div class="dayhead"><span>${dayLabel(d)}</span><span>${cop(sum(items.map(e=>+e.amount)))}</span></div>
+    <div class="card" style="padding:0 14px">${items.map(e=>`
+      <div class="item"><div class="emoji">${catIcon(e.cat)}</div>
+        <div class="grow"><div class="t">${esc(e.note||e.cat)}</div><div class="muted">${esc(e.cat)}</div></div>
+        <div class="amt">${cop(e.amount)}</div>
+        <button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join("")}</div>`).join("")
+    : `<div class="empty">Sin gastos este mes.<br>Toca ＋ para agregar el primero.</div>`}
+  <button class="fab" onclick="sheetExpense()">＋</button>`;
+}
+
+function vFijos(){
+  const paidIds = S.paid[month]||[];
+  const list = [...S.fixed].sort((a,b)=>a.day-b.day);
+  const total = sum(list.map(f=>+f.amount));
+  const paid = sum(list.filter(f=>paidIds.includes(f.id)).map(f=>+f.amount));
+  const cl = [...S.credits].sort((a,b)=>a.start.localeCompare(b.start));
+  const cu = cuotasEn(month);
+  const estado = c => { const d = mDiff(c.start,month);
+    if(d<0) return `Empieza en ${monthLabel(c.start)}`;
+    if(d>=+c.months) return "Terminado";
+    return `Cuota ${d+1} de ${c.months} · hasta ${monthLabel(shiftMonth(c.start,c.months-1))}`; };
+  return `<h1>Gastos fijos</h1>${monthNav()}
+  <div class="card">
+    <div class="row"><span class="muted">Pagado</span><b>${cop(paid)} / ${cop(total)}</b></div>
+    <div class="bar"><i style="width:${total?paid/total*100:0}%"></i></div>
+  </div>
+  ${list.length ? `<div class="card" style="padding:0 14px">${list.map(f=>{const on=paidIds.includes(f.id);return `
+    <div class="item ${on?"done":""}">
+      <button class="chk ${on?"on":""}" onclick="togglePaid('${f.id}')">${on?"✓":""}</button>
+      <div class="grow"><div class="t">${esc(f.name)}</div><div class="muted">Vence el día ${f.day}</div></div>
+      <div class="amt">${cop(f.amount)}</div>
+      <button class="del" onclick="delFixed('${f.id}')">✕</button></div>`}).join("")}</div>`
+    : `<div class="empty">Agrega arriendo, servicios, suscripciones…</div>`}
+  <h2>Compras a crédito</h2>
+  <div class="card"><div class="row"><span class="muted">Cuotas que se cobran este mes</span><b>${cop(cu)}</b></div>
+    <div class="muted" style="margin-top:4px">Se descuentan de tu presupuesto del mes.</div></div>
+  ${cl.length ? `<div class="card" style="padding:0 14px">${cl.map(c=>{ const off = !credActivo(c,month);return `
+    <div class="item ${off?"done":""}">
+      <div class="emoji">💳</div>
+      <div class="grow"><div class="t">${esc(c.name)}</div>
+        <div class="muted">${estado(c)}</div>
+        <div class="muted">Total ${cop(c.total)} · ${c.months} meses</div></div>
+      <div class="amt">${cop(cuota(c))}<div class="muted" style="text-align:right;font-weight:400">/mes</div></div>
+      <button class="del" onclick="delCredit('${c.id}')">✕</button></div>`}).join("")}</div>`
+    : `<div class="empty">Sin compras a crédito.</div>`}
+  <button class="btn sec" onclick="sheetCredit()">💳 Agregar compra a crédito</button>
+  <button class="fab" onclick="sheetFixed()">＋</button>`;
+}
+
+function vCompras(){
+  const order = {alta:0,media:1,baja:2};
+  const pending = S.wish.filter(w=>!w.bought).sort((a,b)=>order[a.prio]-order[b.prio]);
+  const bought = S.wish.filter(w=>w.bought);
+  const c = calc();
+  const row = w => `<div class="item ${w.bought?"done":""}">
+      <button class="chk ${w.bought?"on":""}" onclick="toggleBought('${w.id}')">${w.bought?"✓":""}</button>
+      <div class="grow"><div class="t">${esc(w.name)}</div><div class="muted"><span class="pill ${w.prio}">${w.prio}</span></div></div>
+      <div class="amt">${cop(w.price)}</div>
+      <button class="del" onclick="delWish('${w.id}')">✕</button></div>`;
+  return `<h1>Compras</h1>
+  <div class="card">
+    <div class="row"><span class="muted">Pendiente por comprar</span><b>${cop(sum(pending.map(w=>+w.price)))}</b></div>
+    <div class="row" style="margin-top:6px"><span class="muted">Disponible este mes</span><b class="${c.left<0?"neg":""}">${cop(c.left)}</b></div>
+    <div class="muted" style="margin-top:6px">Al marcar una compra como hecha, se registra como gasto de hoy.</div>
+  </div>
+  <h2>Por comprar</h2>
+  ${pending.length?`<div class="card" style="padding:0 14px">${pending.map(row).join("")}</div>`:`<div class="empty">Nada pendiente. Toca ＋ para planear una compra.</div>`}
+  ${bought.length?`<h2>Compradas</h2><div class="card" style="padding:0 14px">${bought.map(row).join("")}</div>`:""}
+  <button class="fab" onclick="sheetWish()">＋</button>`;
+}
+
+// ---------- Panel (dashboard) ----------
+const PAL = ["#2dd4bf","#60a5fa","#f59e0b","#a78bfa","#f472b6","#34d399","#fb7185","#94a3b8"];
+const spentIn = m => sum(S.expenses.filter(e=>e.date.startsWith(m)).map(e=>+e.amount));
+function mInfo(m){
+  const [y,mo] = m.split("-").map(Number), dim = new Date(y,mo,0).getDate(), cm = today().slice(0,7);
+  const isCur = m===cm, dom = isCur ? new Date().getDate() : m<cm ? dim : 0;
+  return {dim,dom,isCur,daysLeft: isCur ? dim-dom+1 : m<cm ? 0 : dim};
+}
+
+// Presupuesto diario promedio, gasto diario real, máximo del mes y máximo de hoy
+function dailyCards(){
+  const c = calc(), mi = mInfo(month);
+  const plan = c.budget>0 ? c.budget/mi.dim : 0, real = mi.dom>0 ? c.spent/mi.dom : 0;
+  const todaySp = mi.isCur ? sum(S.expenses.filter(e=>e.date===today()).map(e=>+e.amount)) : 0;
+  const maxToday = mi.isCur && mi.daysLeft>0 ? Math.max(0,(c.left+todaySp)/mi.daysLeft) : 0;
+  const over = plan>0 && real>plan;
+  return `<div class="grid2" style="margin-top:10px">
+    <div class="mini"><div class="muted">Presupuesto diario promedio</div><div class="v">${cop(plan)}</div><div class="muted">${cop(Math.max(c.budget,0))} ÷ ${mi.dim} días</div></div>
+    <div class="mini"><div class="muted">Gasto diario promedio real</div><div class="v ${over?"neg":""}">${cop(real)}</div><div class="muted">${plan>0?(over?"por encima del plan":"dentro del plan"):"—"}</div></div>
+    <div class="mini"><div class="muted">Máximo del mes</div><div class="v">${cop(Math.max(c.budget,0))}</div><div class="muted">gastos variables</div></div>
+    <div class="mini"><div class="muted">Máximo hoy</div><div class="v">${mi.isCur?cop(maxToday):"—"}</div><div class="muted">${mi.isCur?`llevas ${cop(todaySp)} hoy`:"solo en el mes actual"}</div></div>
+  </div>`;
+}
+
+function chartDaily(){
+  const c = calc(), mi = mInfo(month), W=340, H=150, pb=18, pt=8, ch = H-pb-pt;
+  const days = Array.from({length:mi.dim},()=>0);
+  monthExpenses().forEach(e=>{ const d=+e.date.slice(8,10); if(d>=1&&d<=mi.dim) days[d-1]+= +e.amount; });
+  const plan = c.budget>0 ? c.budget/mi.dim : 0;
+  const max = Math.max(1, plan*1.25, ...days), bw = W/mi.dim, y = v => pt+ch-v/max*ch;
+  const bars = days.map((v,i)=>{ if(!v) return ""; const h=v/max*ch, col = plan>0&&v>plan ? "var(--danger)" : "var(--brand)";
+    return `<rect x="${(i*bw+1).toFixed(1)}" y="${(pt+ch-h).toFixed(1)}" width="${Math.max(bw-2,1).toFixed(1)}" height="${h.toFixed(1)}" rx="2" style="fill:${col}"/>`; }).join("");
+  const line = plan>0 ? `<line x1="0" x2="${W}" y1="${y(plan).toFixed(1)}" y2="${y(plan).toFixed(1)}" stroke-width="1.5" stroke-dasharray="5 4" style="stroke:var(--warn)"/>
+    <text x="${W}" y="${(y(plan)-4).toFixed(1)}" text-anchor="end" font-size="10" style="fill:var(--warn)">plan ${cop(plan)}/día</text>` : "";
+  const ticks = [1,8,15,22,mi.dim].filter((d,i,a)=>a.indexOf(d)===i).map(d=>`<text x="${((d-1)*bw+bw/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${d}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Gasto por día">${bars}${line}${ticks}</svg>`;
+}
+
+function chartDonut(){
+  const by = {}; monthExpenses().forEach(e=>by[e.cat]=(by[e.cat]||0)+ +e.amount);
+  let items = Object.entries(by).sort((a,b)=>b[1]-a[1]); const tot = sum(items.map(i=>i[1]));
+  if(!tot) return `<div class="empty">Sin gastos este mes.</div>`;
+  if(items.length>6) items = items.slice(0,5).concat([["Otras",sum(items.slice(5).map(i=>i[1]))]]);
+  const R=42, C=2*Math.PI*R; let off=0;
+  const colOf = (c,i) => c==="Otras" ? PAL[7] : PAL[i%7];
+  const segs = items.map(([c,v],i)=>{ const len=v/tot*C;
+    const s = `<circle r="${R}" cx="60" cy="60" fill="none" stroke="${colOf(c,i)}" stroke-width="18" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`;
+    off+=len; return s; }).join("");
+  const leg = items.map(([c,v],i)=>`<div class="lg"><i style="background:${colOf(c,i)}"></i><span>${catIcon(c)} ${esc(c)}</span><b>${Math.round(v/tot*100)}%</b></div>`).join("");
+  return `<div class="donut"><svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Gasto por categoría">${segs}
+    <text x="60" y="58" text-anchor="middle" font-size="9" style="fill:var(--muted)">Total</text>
+    <text x="60" y="72" text-anchor="middle" font-size="11" font-weight="700" style="fill:var(--text)">${cop(tot)}</text></svg><div class="legend">${leg}</div></div>`;
+}
+
+function capsRows(){
+  const by = {}; monthExpenses().forEach(e=>by[e.cat]=(by[e.cat]||0)+ +e.amount);
+  const ap = Math.min(99,Math.max(50,+S.alertPct||80))/100;
+  const cats = CATS.map(c=>c[0]).filter(c=>S.caps[c]||by[c]);
+  if(!cats.length) return `<div class="empty">Sin topes ni gastos todavía.<br>Toca «Editar topes» o dile a JARVIS: «pon tope de 400 mil a Comida».</div>`;
+  return cats.map(c=>{
+    const sp = by[c]||0, cap = +S.caps[c]||0, p = cap ? sp/cap : 0, cls = !cap ? "" : p>=1 ? "over" : p>=ap ? "warn" : "";
+    return `<div class="catrow"><div class="row"><span>${catIcon(c)} ${esc(c)}</span><b>${cop(sp)}${cap?` / ${cop(cap)}`:""}</b></div>
+      ${cap?`<div class="bar ${cls}"><i style="width:${Math.min(100,p*100)}%"></i></div>
+      <div class="muted">${Math.round(p*100)}% del tope${p>=1?" · ¡superado!":p>=ap?" · muy cerca":""}</div>`:`<div class="muted">sin tope</div>`}</div>`;
+  }).join("");
+}
+
+function chartTrend(){
+  const c = calc(), ms = []; for(let i=5;i>=0;i--) ms.push(shiftMonth(month,-i));
+  const vals = ms.map(spentIn), W=340, H=135, pb=18, pt=14, ch=H-pb-pt, bw=W/6, max = Math.max(1,c.budget,...vals);
+  const bars = vals.map((v,i)=>{ const h=v/max*ch, col = c.budget>0&&v>c.budget ? "var(--danger)" : "var(--brand)", x=i*bw+bw/2;
+    return `<rect x="${(i*bw+12).toFixed(1)}" y="${(pt+ch-h).toFixed(1)}" width="${(bw-24).toFixed(1)}" height="${h.toFixed(1)}" rx="3" style="fill:${col}"/>
+      <text x="${x.toFixed(1)}" y="${(pt+ch-h-3).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:var(--muted)">${v?Math.round(v/1000)+"k":""}</text>
+      <text x="${x.toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="10" style="fill:var(--muted)">${monthLabel(ms[i]).split(" ")[0].slice(0,3)}</text>`; }).join("");
+  const yb = pt+ch-Math.max(c.budget,0)/max*ch;
+  const line = c.budget>0 ? `<line x1="0" x2="${W}" y1="${yb.toFixed(1)}" y2="${yb.toFixed(1)}" stroke-width="1.5" stroke-dasharray="5 4" style="stroke:var(--warn)"/>
+    <text x="${W}" y="${(yb-4).toFixed(1)}" text-anchor="end" font-size="10" style="fill:var(--warn)">presupuesto ${cop(c.budget)}</text>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Gasto de los últimos 6 meses">${bars}${line}</svg>`;
+}
+
+function vPanel(){
+  const c = calc(), J = jarvis(), urg = jUrgent(J);
+  const pct = c.budget>0 ? Math.min(100,c.spent/c.budget*100) : (c.spent>0?100:0);
+  const ap = Math.min(99,Math.max(50,+S.alertPct||80)), cls = pct>=100 ? "over" : pct>=ap ? "warn" : "";
+  const paidIds = S.paid[month]||[], fx = sum(S.fixed.map(f=>+f.amount)), fp = sum(S.fixed.filter(f=>paidIds.includes(f.id)).map(f=>+f.amount));
+  return `<div class="row"><h1>Panel</h1><button class="btn sec" style="width:auto;padding:8px 12px" onclick="exportExcel()">⬇️ Excel</button></div>${monthNav()}
+  ${urg.length ? `<div class="card" onclick="jOpen()" style="cursor:pointer"><div class="muted"><i class="orb xs ${J.level==="red"?"red":J.level==="yellow"?"yellow":""}"></i> JARVIS ·${urg.length} alerta${urg.length===1?"":"s"}</div>${urg.slice(0,3).map(jAlert).join("")}</div>`
+               : `<div class="jbanner"><span style="font-size:22px">✅</span><div><b>JARVIS:</b> sin alertas urgentes</div></div>`}
+  <div class="card">
+    <div class="row"><span class="muted">Te queda para gastar</span><b class="${c.left<0?"neg":""}">${cop(c.left)}</b></div>
+    <div class="bar ${cls}"><i style="width:${pct}%"></i></div>
+    <div class="row muted"><span>Gastado ${cop(c.spent)} (${Math.round(pct)}%)</span><span>de ${cop(c.budget)}</span></div>
+  </div>
+  ${dailyCards()}
+  <h2>Gasto por día</h2><div class="card">${chartDaily()}<div class="muted">Barras rojas: días por encima de tu presupuesto diario promedio.</div></div>
+  <h2>Por categoría</h2><div class="card">${chartDonut()}</div>
+  <h2>Topes por categoría</h2><div class="card">${capsRows()}<button class="btn sec" style="margin-top:10px" onclick="sheetCaps()">🎯 Editar topes</button></div>
+  <h2>Últimos 6 meses</h2><div class="card">${chartTrend()}</div>
+  <h2>Gastos fijos y créditos</h2><div class="card"><div class="row"><span class="muted">Cuotas de crédito este mes</span><b>${cop(cuotasEn(month))}</b></div><div class="row" style="margin-top:6px"><span class="muted">Pagado</span><b>${cop(fp)} / ${cop(fx)}</b></div>
+    <div class="bar"><i style="width:${fx?fp/fx*100:0}%"></i></div></div>`;
+}
+
+// ---------- Exportar a Excel ----------
+window.exportExcel = () => {
+  const cm = today().slice(0,7), paid = S.paid[cm]||[];
+  const gastos = [...S.expenses].sort((a,b)=>a.date.localeCompare(b.date)).map(e=>({"Fecha":e.date,"Categoría":e.cat,"Nota":e.note||"","Monto":+e.amount}));
+  if(!window.XLSX){   // sin conexión la primera vez: respaldo en CSV (Excel lo abre)
+    const csv = "﻿Fecha;Categoría;Nota;Monto\n"+gastos.map(g=>[g.Fecha,g["Categoría"],'"'+g.Nota.replace(/"/g,'""')+'"',g.Monto].join(";")).join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download = "mis-gastos-"+today()+".csv"; a.click();
+    return alert("No se pudo cargar el generador de Excel (sin conexión). Descargué un CSV con tus gastos; ábrelo con Excel.");
+  }
+  const fijos = S.fixed.map(f=>({"Nombre":f.name,"Monto mensual":+f.amount,"Día de vencimiento":+f.day,["Pagado en "+cm]:paid.includes(f.id)?"Sí":"No"}));
+  const compras = S.wish.map(w=>({"Producto":w.name,"Precio":+w.price,"Prioridad":w.prio,"Estado":w.bought?"Comprado":"Pendiente"}));
+  const by = {}; S.expenses.filter(e=>e.date.startsWith(month)).forEach(e=>by[e.cat]=(by[e.cat]||0)+ +e.amount);
+  const topes = CATS.map(c=>c[0]).filter(c=>S.caps[c]||by[c]).map(c=>({"Categoría":c,"Tope mensual":+S.caps[c]||"",["Gastado "+month]:by[c]||0,"% del tope":S.caps[c]?Math.round((by[c]||0)/S.caps[c]*100)/100:""}));
+  const inc = +S.income||0, sav = inc*(+S.savePct||0)/100, fxT = sum(S.fixed.map(f=>+f.amount)), bud = inc-sav-fxT;
+  const months = [...new Set(S.expenses.map(e=>e.date.slice(0,7)).concat(cm))].sort();
+  const porMes = months.map(m=>{ const sp = spentIn(m), mi = mInfo(m), den = mi.dom||mi.dim, cu = cuotasEn(m), b = inc-sav-fxT-cu;
+    return {"Mes":m,"Ingreso":inc,"Ahorro meta":sav,"Gastos fijos":fxT,"Cuotas de crédito":Math.round(cu),"Presupuesto variable":Math.round(b),"Gastado (variable)":sp,
+      "Saldo":Math.round(b-sp),"Presupuesto diario promedio":Math.round(b/mi.dim),"Gasto diario promedio":Math.round(sp/den)}; });
+  const creditos = S.credits.map(c=>({"Compra":c.name,"Monto a crédito":+c.total,"Meses":+c.months,"Primer cobro":c.start,"Último cobro":shiftMonth(c.start,+c.months-1),
+    "Cuota mensual":Math.round(cuota(c)),"Cuotas restantes":credRestantes(c,cm),"Saldo pendiente":Math.round(credRestantes(c,cm)*cuota(c))}));
+  const wb = XLSX.utils.book_new();
+  [["Resumen por mes",porMes],["Gastos",gastos],["Fijos",fijos],["Compras",compras],["Topes",topes],["Créditos",creditos]].forEach(([n,rows])=>{
+    const ws = XLSX.utils.json_to_sheet(rows.length?rows:[{"Sin datos":""}]);
+    ws["!cols"] = Object.keys(rows[0]||{"Sin datos":1}).map(k=>({wch:Math.max(12,k.length+2)}));
+    XLSX.utils.book_append_sheet(wb, ws, n);
+  });
+  XLSX.writeFile(wb, "mis-gastos-"+today()+".xlsx");
+};
+
+// ---------- JARVIS: agente de estatus y alertas (reglas locales, sin internet) ----------
+const RANK = {danger:3,warn:2,info:1,ok:0};
+function jarvis(){
+  const now = new Date(), cm = today().slice(0,7);
+  const dom = now.getDate(), dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const daysLeft = dim - dom + 1;
+  const income = +S.income||0, saving = income*(+S.savePct||0)/100;
+  const cuotas = cuotasEn(cm);
+  const fixedTotal = sum(S.fixed.map(f=>+f.amount)) + cuotas;
+  const budget = income - saving - fixedTotal;
+  const exps = S.expenses.filter(e=>e.date.startsWith(cm));
+  const spent = sum(exps.map(e=>+e.amount));
+  const left = budget - spent;
+  const todaySpent = sum(exps.filter(e=>e.date===today()).map(e=>+e.amount));
+  const perDay = left>0 ? left/daysLeft : 0;
+  const projected = spent/dom*dim;
+  const A = [];
+  const add = (lvl,icon,title,text,tag) => A.push({lvl,icon,title,text,tag});
+
+  const ap = Math.min(99,Math.max(50,+S.alertPct||80))/100;          // % desde el cual avisa "muy cerca"
+  const avgPlan = budget>0 ? budget/dim : 0;                         // presupuesto diario promedio
+  const avgReal = spent/dom;                                         // gasto diario promedio real
+  const allowance = daysLeft>0 ? (left+todaySpent)/daysLeft : 0;     // máximo que puedes gastar hoy
+
+  if(income<=0){
+    add("info","⚙️","Falta configurar tu ingreso","Ve a Resumen › Configuración, o dime «mi ingreso es 5 millones», para que pueda calcular tu presupuesto.");
+  } else if(budget<=0){
+    add("danger","🚨","Tus fijos y ahorro superan tu ingreso",`Faltan ${cop(-budget)} al mes. Revisa tus gastos fijos o baja el % de ahorro.`,"budget");
+  } else {
+    const pct = spent/budget;
+    if(pct>=1) add("danger","🚨","Presupuesto del mes agotado",`Te pasaste por ${cop(spent-budget)}. Evita gastos no esenciales hasta fin de mes.`,"budget");
+    else if(pct>=ap) add("warn","⚠️",`Muy cerca del tope: ${Math.round(pct*100)}% del presupuesto`,`Te quedan ${cop(left)} para ${daysLeft} día(s): ${cop(perDay)} por día.`,"budget");
+    else if(dom>=5 && projected>budget*1.05) add("warn","📈","A este ritmo te pasarás del presupuesto",`Proyecto que cerrarás el mes con ${cop(projected)} en gastos, ${cop(projected-budget)} por encima de lo previsto.`,"budget");
+    else add("ok","✅","Vas bien con el presupuesto",`Llevas ${Math.round(pct*100)}% gastado con ${dom} de ${dim} días del mes. Presupuesto diario promedio: ${cop(avgPlan)}.`);
+
+    // Control diario: hoy frente al promedio planeado y frente al máximo de hoy
+    if(todaySpent>0){
+      if(left>0 && todaySpent>allowance) add("danger","📅","Te pasaste del máximo de hoy",`Llevas ${cop(todaySpent)} y tu máximo de hoy era ${cop(allowance)} para no romper el mes.`,"daily");
+      else if(todaySpent>avgPlan) add("warn","📅","Hoy superaste tu presupuesto diario promedio",`Llevas ${cop(todaySpent)} y tu promedio planeado es ${cop(avgPlan)} por día.`,"daily");
+      else if(todaySpent>=avgPlan*ap) add("warn","📅","Estás muy cerca de tu presupuesto de hoy",`Llevas ${cop(todaySpent)} de ${cop(avgPlan)} (${Math.round(todaySpent/avgPlan*100)}%).`,"daily");
+    }
+    if(dom>=3 && avgReal>avgPlan)
+      add("warn","📊","Tu gasto diario promedio supera el planeado",`Gastas ${cop(avgReal)} por día en promedio y tu presupuesto diario es ${cop(avgPlan)}.`,"avg");
+  }
+
+  // Topes por categoría
+  Object.entries(S.caps||{}).forEach(([cat,cap])=>{
+    cap = +cap; if(!cap) return;
+    const sp = sum(exps.filter(e=>e.cat===cat).map(e=>+e.amount)), p = sp/cap;
+    if(p>=1) add("danger",catIcon(cat),`Superaste el tope de ${cat}`,`Llevas ${cop(sp)} de ${cop(cap)} (te pasaste por ${cop(sp-cap)}).`,"cap:"+cat);
+    else if(p>=ap) add("warn",catIcon(cat),`${cat} está muy cerca de su tope (${Math.round(p*100)}%)`,`Llevas ${cop(sp)} de ${cop(cap)}; te quedan ${cop(cap-sp)}.`,"cap:"+cat);
+  });
+
+  // Cuotas de compras a crédito
+  if(cuotas>0){
+    const act = S.credits.filter(c=>credActivo(c,cm));
+    add("info","💳",`Cuotas de crédito este mes: ${cop(cuotas)}`,`${act.length} compra(s) a crédito: ${act.map(c=>c.name).join(", ")}.`,"credit");
+    if(income>0 && cuotas/income>=.2)
+      add("warn","💳",`Tus cuotas ya son el ${Math.round(cuotas/income*100)}% de tu ingreso`,"Es un nivel alto de compromiso: evita nuevas compras a crédito por ahora.","credit");
+  }
+
+  // Gastos fijos por vencer o vencidos (mes actual)
+  const paid = S.paid[cm]||[];
+  const pend = S.fixed.filter(f=>!paid.includes(f.id));
+  pend.map(f=>({f,diff:Math.min(+f.day,dim)-dom})).sort((a,b)=>a.diff-b.diff).forEach(({f,diff})=>{
+    if(diff<0) add("danger","⏰",`${f.name} está vencido`,`Venció hace ${-diff} día(s) · ${cop(f.amount)}. Márcalo como pagado cuando lo hagas.`);
+    else if(diff===0) add("warn","⏰",`${f.name} vence hoy`,`${cop(f.amount)}.`);
+    else if(diff<=3) add("warn","🗓️",`${f.name} vence en ${diff} día(s)`,`${cop(f.amount)} · día ${f.day}.`);
+  });
+  if(pend.length) add("info","📌",`${pend.length} gasto(s) fijo(s) sin pagar este mes`,`Total pendiente: ${cop(sum(pend.map(f=>+f.amount)))}.`);
+
+  // Concentración por categoría
+  if(exps.length>=5 && spent>0){
+    const by = {}; exps.forEach(e=>by[e.cat]=(by[e.cat]||0)+ +e.amount);
+    const [cat,v] = Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+    if(v/spent>.4) add("info",catIcon(cat),`${cat} es tu mayor gasto`,`Representa el ${Math.round(v/spent*100)}% de lo gastado este mes (${cop(v)}).`);
+  }
+
+  // Constancia en el registro
+  if(now.getHours()>=19 && todaySpent===0 && !exps.some(e=>e.date===today()))
+    add("info","📝","No has registrado gastos hoy","Si gastaste algo, anótalo antes de olvidarlo.");
+
+  // Compras planeadas
+  const wants = S.wish.filter(w=>!w.bought).sort((a,b)=>({alta:0,media:1,baja:2})[a.prio]-({alta:0,media:1,baja:2})[b.prio]);
+  const okBuy = wants.find(w=>w.price<=left && left-w.price>=budget*.1);
+  if(okBuy) add("info","🛍️",`Puedes comprar: ${okBuy.name}`,`Cuesta ${cop(okBuy.price)} y te quedarían ${cop(left-okBuy.price)} este mes.`);
+  const noBuy = wants.find(w=>w.prio==="alta" && w.price>left);
+  if(noBuy && income>0) add("info","⏳",`${noBuy.name} no cabe este mes`,`Faltan ${cop(noBuy.price-Math.max(left,0))} para poder comprarlo.`);
+
+  if(income>0 && saving>0) add("ok","💰","Meta de ahorro del mes",`${cop(saving)} (${+S.savePct}% de tu ingreso). Sepárala apenas recibas el ingreso.`);
+
+  A.sort((a,b)=>RANK[b.lvl]-RANK[a.lvl]);
+  const worst = A.reduce((m,a)=>Math.max(m,RANK[a.lvl]),0);
+  const level = worst>=3 ? "red" : worst===2 ? "yellow" : "green";
+  const h = now.getHours();
+  const greet = h<12 ? "Buenos días" : h<19 ? "Buenas tardes" : "Buenas noches";
+  const headline = income<=0 ? `${greet}. Configura tu ingreso y empiezo a monitorear tus finanzas.` :
+    level==="red" ? `${greet}. Hay asuntos críticos que requieren tu atención.` :
+    level==="yellow" ? `${greet}. Todo bajo control, pero hay puntos de atención.` :
+    `${greet}. Tus finanzas están en orden.`;
+  return {level,headline,alerts:A,left,perDay,daysLeft,budget,spent,projected,todaySpent,dom,dim,income,saving,fixedTotal,exps,pend:[...pend],avgPlan,avgReal,allowance,cuotas};
+}
+
+// ---------- JARVIS flotante: asistente conversacional (reglas locales, sin internet) ----------
+// Mismo modelo que el asistente Cuat: botón flotante + globo de aviso + panel de chat con
+// sugerencias. Clasifica la pregunta por palabras clave y responde con TUS datos; no inventa cifras.
+const nz = s => (s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+  .replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
+
+const INTENTS = [
+  {id:"saludo", t:["hola","buenas","buenos dias","buenas tardes","buenas noches","hey","que tal","saludos"]},
+  {id:"estatus",t:["estatus","status","como voy","como vamos","como estoy","resumen","panorama","estado","finanzas","como va","situacion","reporte","informe"]},
+  {id:"alertas",t:["alertas","alerta","avisos","urgente","novedades","pendiente","pendientes","riesgo","riesgos","problemas","que debo hacer","atencion"]},
+  {id:"hoy",    t:["hoy","tope diario","por dia","diario","cuanto puedo gastar","puedo gastar hoy"]},
+  {id:"mes",    t:["cuanto gaste","he gastado","gastado","gastos del mes","total gastado","llevo gastado","gastos"]},
+  {id:"queda",  t:["me queda","queda","disponible","restante","sobra","cuanto tengo"]},
+  {id:"cat",    t:["categoria","categorias","en que gasto","donde se va","mayor gasto","gasto mas","gasto de mas","fuga","fugas"]},
+  {id:"fijos",  t:["fijos","fijo","vence","vencen","vencimiento","vencimientos","arriendo","servicios","pagar","pagos","suscripciones"]},
+  {id:"ahorro", t:["ahorro","ahorrar","meta de ahorro","ahorrando"]},
+  {id:"compras",t:["compras","lista de compras","deseos","comprar","quiero comprar"]},
+  {id:"proy",   t:["proyeccion","cierre","ritmo","fin de mes","terminare","cerrare"]},
+  {id:"credito",t:["credito","creditos","cuotas","cuota","financiado","financiacion","deuda","deudas","a cuotas"]},
+  {id:"promedio",t:["promedio","presupuesto diario","maximo","tope maximo","limite diario","cuanto es lo maximo","presupuesto por dia"]},
+  {id:"topes",  t:["topes","tope","limites","limite"]},
+  {id:"ayuda",  t:["ayuda","que puedes hacer","opciones","que sabes","comandos","para que sirves","quien eres","que eres","jarvis"]}
+];
+function jContiene(qq, term){
+  return qq.indexOf(" "+term+" ")!==-1 || qq.indexOf(" "+term+"s ")!==-1 ||
+    (term.slice(-1)==="s" && qq.indexOf(" "+term.slice(0,-1)+" ")!==-1);
+}
+function jClasifica(q){
+  const qq = " "+nz(q)+" ";
+  let best=null, max=0;
+  INTENTS.forEach(it=>{
+    let p=0; it.t.forEach(t=>{ const n=nz(t); if(jContiene(qq,n)) p+=3+n.length/4; });
+    if(p>max){max=p;best=it.id;}
+  });
+  return max>=3 ? best : null;
+}
+// "80000", "80.000", "80 mil", "1,5 millones" → número
+function jMonto(q){
+  const m = String(q).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").match(/(\d+(?:[.,]\d+)*)\s*(mil|k|millon(?:es)?|m)?\b/);
+  if(!m) return 0;
+  let s = m[1], n;
+  if(/^\d{1,3}(\.\d{3})+$/.test(s)) n = parseFloat(s.replace(/\./g,""));
+  else if(/^\d{1,3}(,\d{3})+$/.test(s)) n = parseFloat(s.replace(/,/g,""));
+  else n = parseFloat(s.replace(",","."));
+  if(!isFinite(n)) return 0;
+  const u = m[2];
+  if(u==="mil"||u==="k") n*=1000; else if(u&&u!=="m") n*=1e6; else if(u==="m") n*=1e6;
+  return Math.round(n);
+}
+const CAT_WORDS = {
+  "Comida":["comida","almuerzo","cena","desayuno","restaurante","cafe","domicilio","pizza","hamburguesa","helado"],
+  "Mercado":["mercado","super","supermercado","exito","d1","ara","tienda","plaza"],
+  "Transporte":["taxi","uber","bus","transmilenio","gasolina","pasaje","transporte","peaje","parqueadero","moto"],
+  "Hogar":["arriendo","luz","agua","gas","internet","hogar","aseo","reparacion"],
+  "Salud":["medicina","medicamento","drogueria","farmacia","salud","doctor","medico","dentista","examen"],
+  "Ocio":["cine","netflix","ocio","fiesta","salida","bar","concierto","juego","spotify","rumba"],
+  "Ropa":["ropa","zapatos","camisa","pantalon","tenis","vestido"],
+  "Educación":["curso","libro","universidad","colegio","educacion","matricula","clase"]
+};
+function jCat(q){
+  const qq = " "+nz(q)+" ";
+  for(const [c,ws] of Object.entries(CAT_WORDS)) if(ws.some(w=>jContiene(qq,w))) return c;
+  return "Otros";
+}
+
+let jPending = null, jShown = false;
+const jRow = (k,v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+const jAlert = a => `<div class="alert ${a.lvl}"><div class="ai">${a.icon}</div><div><b>${esc(a.title)}</b><span>${esc(a.text)}</span></div></div>`;
+const jActs = l => `<div class="jacc">${l.map(([t,q])=>`<button data-q="${esc(q)}">${esc(t)}</button>`).join("")}</div>`;
+const jUrgent = J => J.alerts.filter(a=>a.lvl==="danger"||a.lvl==="warn");
+
+// ----- Acciones por chat: agregar, quitar y cambiar datos (siempre con «Deshacer») -----
+const V_ADD = /\b(agrega|agregar|agregame|anade|anadir|anota|anotar|registra|registrar|apunta|apuntar|crea|crear|suma|sumar|incluye|incluir|pon|poner|ponle|guarda|guardar|gaste|pague|compre|inscribe)\b/;
+const V_DEL = /\b(quita|quitar|quitame|elimina|eliminar|eliminame|borra|borrar|borrame|saca|sacar|retira|retirar|remueve|remover|descarta|descartar)\b/;
+const V_SET = /\b(cambia|cambiar|actualiza|actualizar|modifica|modificar|ajusta|ajustar|corrige|corregir|sube|baja|subele|bajale)\b/;
+const MONTO_RE = /\$?\s?(\d+(?:[.,]\d+)*)\s*(mil|k|millon(?:es)?|m)?\b/i;
+const NOISE = new Set(("agrega agregar agregame anade anadir anota anotar registra registrar apunta apuntar crea crear suma sumar incluye incluir pon poner ponle guarda guardar gaste pague compre inscribe "+
+  "quita quitar quitame elimina eliminar eliminame borra borrar borrame saca sacar retira retirar remueve remover descarta descartar cambia cambiar actualiza actualizar modifica modificar ajusta ajustar corrige corregir sube baja "+
+  "gasto gastos fijo fijos mensual mensuales cada mes compra compras lista deseos tope topes prioridad alta media baja favor pesos cop de del la el los las un una unos unas a al en para con por mi mis que es son como ya lo se me te le y o este ese "+
+  "quiero necesito comprar planeo pienso hoy ayer anteayer mil millones dia dias nuevo nueva otro otra ultimo ultima todos todas limite limites").split(" "));
+
+"credito creditos cuota cuotas financiado financiada financio fiado meses desde proximo viene enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split(" ").forEach(w=>NOISE.add(w));
+let jUndoSnap = null;
+const jSnap = () => { jUndoSnap = JSON.stringify(S); };
+const jCommit = html => { save(); render(); return html + jActs([["↩️ Deshacer","__undo"]]); };
+const cap1 = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
+const daysAgo = d => { const x=new Date(); x.setDate(x.getDate()-d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); };
+
+function jNombre(q){
+  const t = nz(String(q).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(MONTO_RE," ")).split(" ").filter(w=>w && !NOISE.has(w) && !/^\d+$/.test(w));
+  return cap1(t.join(" "));
+}
+function jCatExpl(q){
+  const qq = " "+nz(q)+" ";
+  for(const [c] of CATS) if(jContiene(qq,nz(c))) return c;
+  for(const [c,ws] of Object.entries(CAT_WORDS)) if(ws.some(w=>jContiene(qq,w))) return c;
+  return null;
+}
+// Busca elementos (fijos / compras) cuyo nombre aparece en el texto
+function jBuscar(list, n){
+  const qq = " "+n+" "; let best = [], bs = 0;
+  list.forEach(it=>{
+    const sc = nz(it.name).split(" ").filter(t=>t.length>=3 && jContiene(qq,t)).length;
+    if(sc>bs){ bs=sc; best=[it]; } else if(sc===bs && sc>0) best.push(it);
+  });
+  return best;
+}
+const jPostAlerts = cat => {
+  const J = jarvis();
+  const l = J.alerts.filter(a=>RANK[a.lvl]>=2 && (a.tag==="cap:"+cat || a.tag==="budget" || a.tag==="daily" || a.tag==="avg")).slice(0,2);
+  return l.length ? `<p style="margin-top:8px"><b>Ojo:</b></p>`+l.map(jAlert).join("") : "";
+};
+const jOpciones = (txt, items, mk) => `<p>${txt}</p>`+jActs(items.slice(0,5).map(mk));
+
+function jAccion(q){
+  const n = nz(q), qq = " "+n+" ", cm = today().slice(0,7);
+  const monto0 = /\d/.test(q) ? jMonto(q) : 0;
+
+  if(/\b(excel|xlsx|exporta|exportar|descarga|descargar)\b/.test(n) && !/^(como|puedo|se puede)\b/.test(n)){
+    exportExcel();
+    return `<p>📥 Preparé tu Excel con el resumen por mes, gastos, fijos, compras y topes. Revisa tus descargas.</p>`;
+  }
+  if(/^(puedo|podria|cuanto|cuantos|cuanta|cuantas|cual|cuales|que|como|donde|por que|cuando|quien|me alcanza|alcanza|hay|tengo|estoy|voy|vamos)\b/.test(n)) return null;
+
+  const del = V_DEL.test(n), set = V_SET.test(n), add = V_ADD.test(n);
+  const spendVerb = /\b(gaste|pague|compre|gasto|gastos)\b/.test(n);
+
+  // % de ahorro / % de aviso
+  const pm = String(q).match(/(\d+(?:[.,]\d+)?)\s*(%|por\s?ciento)/i);
+  if(pm){
+    const p = Math.min(100, parseFloat(pm[1].replace(",",".")));
+    if(/\b(alerta|alertas|aviso|avisos|avisar|avisame|alertame)\b/.test(n)){
+      jSnap(); S.alertPct = Math.max(50,Math.min(99,Math.round(p)));
+      return jCommit(`<p>✅ Te avisaré cuando llegues al <b>${S.alertPct}%</b> de un tope.</p>`);
+    }
+    if(/\b(ahorro|ahorrar)\b/.test(n)){
+      jSnap(); S.savePct = p;
+      return jCommit(`<p>✅ Meta de ahorro: <b>${p}%</b> de tu ingreso${S.income?` (${cop(S.income*p/100)} al mes)`:""}.</p>`);
+    }
+  }
+  // Ingreso
+  if(/\b(ingreso|ingresos|sueldo|salario|nomina)\b/.test(n) && monto0 && !del){
+    jSnap(); S.income = monto0;
+    return jCommit(`<p>✅ Ingreso mensual: <b>${cop(monto0)}</b>.</p>`);
+  }
+  // Topes por categoría
+  if(/\b(tope|topes|limite|limites)\b/.test(n)){
+    const cat = jCatExpl(q);
+    if(del){
+      if(/\b(todos|todas)\b/.test(n)){ jSnap(); S.caps = {}; return jCommit(`<p>✅ Quité todos los topes.</p>`); }
+      if(cat && S.caps[cat]){ jSnap(); delete S.caps[cat]; return jCommit(`<p>✅ Quité el tope de ${esc(cat)}.</p>`); }
+      return `<p>No encontré ese tope. Topes actuales: ${Object.keys(S.caps).map(esc).join(", ")||"ninguno"}.</p>`;
+    }
+    if(monto0 && (add||set||/\b(es|de|a)\b/.test(n))){
+      if(!cat) return `<p>¿Para qué categoría? Ejemplo: «pon tope de ${cop(monto0)} a Comida». Categorías: ${CATS.map(c=>c[0]).join(", ")}.</p>`;
+      jSnap(); S.caps[cat] = monto0;
+      return jCommit(`<p>✅ Tope de ${catIcon(cat)} <b>${esc(cat)}</b>: ${cop(monto0)} al mes. Te aviso desde el ${S.alertPct||80}%.</p>`);
+    }
+    return null;
+  }
+
+  // Compras a crédito: «agrega crédito Nevera 2 millones 12 meses», «quita el crédito nevera»
+  const hasCred = /\b(credito|creditos|cuota|cuotas|financiado|financiada|financio|fiado)\b/.test(n);
+  const cx = jBuscar(S.credits, n);
+  if(hasCred || (cx.length && del)){
+    if(del){
+      if(cx.length>1) return jOpciones("¿Cuál crédito quito?", cx, c=>[c.name,"quita el crédito "+c.name]);
+      if(cx.length===1){ jSnap(); S.credits = S.credits.filter(c=>c.id!==cx[0].id); return jCommit(`<p>✅ Quité el crédito <b>${esc(cx[0].name)}</b>. Tu presupuesto se recalculó.</p>`); }
+      return `<p>No encontré ese crédito. Tus créditos: ${S.credits.map(c=>esc(c.name)).join(", ")||"ninguno"}.</p>`;
+    }
+    if(add || spendVerb || /\ba credito\b/.test(n)){
+      const mm = String(q).match(/(\d{1,3})\s*(?:meses|mes|cuotas)/i), months = mm ? +mm[1] : 0;
+      const qd = (mm ? String(q).replace(mm[0]," ") : String(q)).replace(/\bdesde\s+\S+/i," ");
+      const total = /\d/.test(qd) ? jMonto(qd) : 0, name = jNombre(qd);
+      if(!total || !months || !name) return `<p>Dime qué, cuánto y en cuántos meses, por ejemplo: «agrega crédito Nevera 2 millones 12 meses». Puedes añadir «desde noviembre».</p>`;
+      let start = cm;
+      if(/\b(proximo mes|mes que viene|siguiente mes)\b/.test(n)) start = shiftMonth(cm,1);
+      else if(/\b(desde|empezando|primera cuota|primer cobro|a partir|inicia|comienza)\b/.test(n)){
+        const i = MESES.findIndex(m=>jContiene(qq,m));
+        if(i>=0){ const [y,mo] = cm.split("-").map(Number); start = (i+1<mo ? y+1 : y)+"-"+String(i+1).padStart(2,"0"); }
+      }
+      jSnap(); S.credits.push({id:uid(),name,total,months:Math.min(months,360),start,cuota:0});
+      const c = S.credits[S.credits.length-1], J = jarvis();
+      return jCommit(`<p>✅ Crédito agregado: <b>${esc(name)}</b></p>${jRow("Monto a crédito",cop(total))}${jRow("Meses",months)}${jRow("Cuota mensual",cop(cuota(c)))}${jRow("Se cobra",monthLabel(start)+" a "+monthLabel(shiftMonth(start,months-1)))}${jRow("Presupuesto variable de este mes",cop(J.budget))}`);
+    }
+    return null;
+  }
+
+  // Gastos fijos
+  const fx = jBuscar(S.fixed, n), hasFijo = /\b(fijo|fijos|mensual|mensuales)\b/.test(n), hasGasto = /\b(gasto|gastos)\b/.test(n);
+  const dm = String(q).match(/(?:d[ií]a|el)\s*(\d{1,2})\b/i);
+  if(fx.length && /\b(desmarca|desmarcar|no he pagado|sin pagar|no pague)\b/.test(n)){
+    if(fx.length>1) return jOpciones("¿Cuál fijo?", fx, f=>[f.name,"desmarca "+f.name]);
+    const f = fx[0], a = S.paid[cm]||[];
+    if(!a.includes(f.id)) return `<p>${esc(f.name)} ya figuraba sin pagar este mes.</p>`;
+    jSnap(); S.paid[cm] = a.filter(x=>x!==f.id);
+    return jCommit(`<p>✅ ${esc(f.name)} quedó como <b>pendiente</b>.</p>`);
+  }
+  if(fx.length && /\b(pague|pagado|pagada|marca|marcar|cancele|pagamos)\b/.test(n) && !del){
+    if(fx.length>1) return jOpciones("¿Cuál fijo pagaste?", fx, f=>[f.name,"pagué "+f.name]);
+    const f = fx[0], a = S.paid[cm]||[];
+    if(a.includes(f.id)) return `<p>${esc(f.name)} ya estaba pagado este mes. ✅</p>`;
+    jSnap(); (S.paid[cm]||(S.paid[cm]=[])).push(f.id);
+    return jCommit(`<p>✅ Marqué <b>${esc(f.name)}</b> (${cop(f.amount)}) como pagado.</p>`);
+  }
+  if(del && fx.length && (hasFijo || !hasGasto)){
+    if(fx.length>1) return jOpciones("¿Cuál fijo quito?", fx, f=>[f.name,"quita el fijo "+f.name]);
+    jSnap(); S.fixed = S.fixed.filter(f=>f.id!==fx[0].id);
+    return jCommit(`<p>✅ Eliminé el gasto fijo <b>${esc(fx[0].name)}</b>.</p>`);
+  }
+  if(del && hasFijo) return `<p>No encontré ese gasto fijo. Tus fijos: ${S.fixed.map(f=>esc(f.name)).join(", ")||"ninguno"}.</p>`;
+  if(set && fx.length===1 && (monto0||dm)){
+    const qd = dm ? String(q).replace(dm[0]," ") : String(q), m2 = /\d/.test(qd) ? jMonto(qd) : 0, f = fx[0];
+    jSnap(); if(m2) f.amount = m2; if(dm) f.day = Math.min(31,Math.max(1,+dm[1]));
+    return jCommit(`<p>✅ <b>${esc(f.name)}</b>: ${cop(f.amount)} · vence el día ${f.day}.</p>`);
+  }
+  if(add && hasFijo){
+    const qd = dm ? String(q).replace(dm[0]," ") : String(q), m2 = /\d/.test(qd) ? jMonto(qd) : 0, name = jNombre(qd);
+    if(!m2 || !name) return `<p>Dime nombre y monto, por ejemplo: «agrega fijo Gimnasio 80 mil día 5».</p>`;
+    jSnap(); const day = dm ? Math.min(31,Math.max(1,+dm[1])) : 1;
+    S.fixed.push({id:uid(),name,amount:m2,day});
+    return jCommit(`<p>✅ Gasto fijo agregado: <b>${esc(name)}</b> · ${cop(m2)} · vence el día ${day}${dm?"":" (puedes decirme otro día)"}.</p>`);
+  }
+
+  // Compras planeadas
+  const wx = jBuscar(S.wish, n);
+  const hasList = /\b(lista|deseos|wishlist)\b|\b(quiero|necesito|planeo|pienso) comprar\b/.test(n) || (!spendVerb && /\bcompras\b/.test(n));
+  if(wx.length && /\b(ya compre|compre|comprado|comprada)\b/.test(n) && !del){
+    const w = wx.find(x=>!x.bought);
+    if(!w) return `<p>${esc(wx[0].name)} ya figura como comprado. ✅</p>`;
+    jSnap(); toggleBought(w.id);
+    return jCommit(`<p>✅ Marqué <b>${esc(w.name)}</b> como comprado y registré ${cop(w.price)} como gasto de hoy.</p>`);
+  }
+  if(del && wx.length && (hasList || !hasGasto)){
+    if(wx.length>1) return jOpciones("¿Cuál quito de la lista?", wx, w=>[w.name,"quita de la lista "+w.name]);
+    jSnap(); S.wish = S.wish.filter(w=>w.id!==wx[0].id);
+    return jCommit(`<p>✅ Quité <b>${esc(wx[0].name)}</b> de tus compras planeadas.</p>`);
+  }
+  if(set && wx.length===1 && monto0){
+    jSnap(); wx[0].price = monto0;
+    return jCommit(`<p>✅ <b>${esc(wx[0].name)}</b> ahora cuesta ${cop(monto0)}.</p>`);
+  }
+  if(hasList && !del && !set && (add || /\b(quiero|necesito|planeo|pienso)\b/.test(n))){
+    const name = jNombre(q);
+    if(!monto0 || !name) return `<p>Dime qué y cuánto cuesta, por ejemplo: «agrega a compras Zapatos 200 mil prioridad alta».</p>`;
+    const prio = /\balta\b/.test(n) ? "alta" : /\bbaja\b/.test(n) ? "baja" : "media";
+    jSnap(); S.wish.push({id:uid(),name,price:monto0,prio,bought:false});
+    return jCommit(`<p>✅ Agregué a compras: <b>${esc(name)}</b> · ${cop(monto0)} · prioridad ${prio}.</p>`);
+  }
+
+  // Gastos diarios: quitar
+  if(del){
+    const all = S.expenses.slice().sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
+    if(!all.length) return `<p>No tienes gastos registrados.</p>`;
+    let c = all;
+    if(/\b(ultimo|ultima|reciente)\b/.test(n)) c = [all[0]];
+    else {
+      const cat = jCatExpl(q), words = n.split(" ").filter(w=>w.length>=3 && !NOISE.has(w) && !/^\d+$/.test(w));
+      if(monto0) c = c.filter(x=>Math.round(+x.amount)===monto0);
+      if(words.length){
+        const byW = c.filter(x=>words.some(w=>nz(x.note+" "+x.cat).includes(w)));
+        c = byW.length ? byW : cat ? c.filter(x=>x.cat===cat) : [];
+      } else if(cat) c = c.filter(x=>x.cat===cat);
+      else if(!monto0) return `<p>¿Cuál gasto quito? Dime el monto o la descripción, por ejemplo: «quita el gasto de 25.000» o «borra el último gasto».</p>`;
+    }
+    if(!c.length) return `<p>No encontré un gasto que coincida. Prueba con el monto exacto o di «borra el último gasto».</p>`;
+    if(c.length===1){
+      const e = c[0]; jSnap(); S.expenses = S.expenses.filter(x=>x.id!==e.id);
+      return jCommit(`<p>✅ Eliminé el gasto <b>${esc(e.note||e.cat)}</b> · ${cop(e.amount)} (${dayLabel(e.date)}).</p>`);
+    }
+    return jOpciones(`Encontré ${c.length} gastos. ¿Cuál elimino?`, c, e=>[`${e.note||e.cat} ${cop(e.amount)} · ${dayLabel(e.date)}`,"__del:"+e.id]);
+  }
+  // Gastos diarios: agregar
+  if(monto0 && (spendVerb || add)){
+    const cat = jCatExpl(q) || "Otros", m = String(q).match(/\ben\s+(.+)$/i);
+    const note = (m && jNombre(m[1])) || jNombre(q) || cat;
+    const date = /\banteayer\b/.test(n) ? daysAgo(2) : /\bayer\b/.test(n) ? daysAgo(1) : today();
+    jSnap(); S.expenses.push({id:uid(),amount:monto0,cat,note,date}); month = date.slice(0,7);
+    return jCommit(`<p>✅ Registré <b>${cop(monto0)}</b> en ${catIcon(cat)} ${esc(cat)} · «${esc(note)}» (${dayLabel(date)}).</p>`+jPostAlerts(cat));
+  }
+  return null;
+}
+
+function jResponder(q){
+  const J = jarvis(), n = nz(q);
+  const monto = jMonto(q);
+  // 2) ¿Puedo gastar X?
+  if(monto>0 && /\b(puedo|podria|alcanza|me da|comprar|gastar|pagar|vale|cuesta|permito)\b/.test(n)){
+    let t;
+    if(J.budget<=0) t = "Primero configura tu ingreso (o ajusta tus fijos): sin presupuesto no tengo con qué comparar.";
+    else if(monto>J.left) t = `<b>No te lo recomiendo.</b> Te pasarías del presupuesto por ${cop(monto-Math.max(J.left,0))}.`;
+    else {
+      const after = J.left-monto, justo = after < J.budget*.1;
+      t = `<b>${justo?"Puedes, pero quedarías muy justo":"Sí, puedes"}.</b> Te quedarían ${cop(after)} para ${J.daysLeft} día(s) (${cop(after/J.daysLeft)} por día).`;
+    }
+    return `<p>${t}</p>`+jActs([["¿Cómo voy?","¿Cómo voy?"],["¿Cuánto puedo gastar hoy?","¿Cuánto puedo gastar hoy?"]]);
+  }
+  switch(jClasifica(q)){
+    case "saludo": return `<p>${esc(J.headline)}</p>`+(jUrgent(J).length?`<p>Tengo <b>${jUrgent(J).length}</b> alerta(s) para ti.</p>`:"")+jActs([["¿Cómo voy?","¿Cómo voy?"],["Ver alertas","¿Qué alertas hay?"]]);
+    case "estatus": {
+      const nom = J.level==="red"?"CRÍTICO":J.level==="yellow"?"ATENCIÓN":"NORMAL";
+      return `<p><b>Estatus: ${nom}.</b> ${esc(J.headline)}</p>`+
+        jRow("Te queda",`<span class="${J.left<0?"neg":""}">${cop(J.left)}</span>`)+jRow("Puedes gastar hoy",cop(J.perDay))+
+        jRow("Gastado hoy",cop(J.todaySpent))+jRow("Proyección de cierre",cop(J.projected)+" / "+cop(J.budget))+
+        (jUrgent(J).length?`<p style="margin-top:10px"><b>Atención:</b></p>`+jUrgent(J).slice(0,3).map(jAlert).join(""):`<p style="margin-top:10px">Sin alertas urgentes.</p>`)+
+        jActs([["Ver todas las alertas","¿Qué alertas hay?"],["🔊 Leer en voz alta","__voz"]]);
+    }
+    case "alertas": {
+      const l = J.alerts.filter(a=>a.lvl!=="ok");
+      return l.length ? `<p>Estas son mis alertas, de más a menos urgente:</p>`+l.map(jAlert).join("")+jActs([["¿Cómo voy?","¿Cómo voy?"]])
+                      : `<p>Sin novedades: todo en orden por ahora. ✅</p>`;
+    }
+    case "hoy": return J.budget<=0 ? `<p>Configura tu ingreso para calcular tu tope diario.</p>` :
+      `<p>Hoy puedes gastar <b>${cop(J.perDay)}</b> sin salirte del plan (te quedan ${cop(J.left)} para ${J.daysLeft} día(s)).</p>${jRow("Llevas hoy",cop(J.todaySpent))}`+
+      jActs([["¿Puedo gastar 50.000?","¿Puedo gastar 50000?"]]);
+    case "mes": {
+      const prom = J.spent/J.dom;
+      return `<p>Este mes llevas <b>${cop(J.spent)}</b> en gastos variables.</p>${jRow("Número de gastos",J.exps.length)}${jRow("Promedio por día",cop(prom))}${jRow("Presupuesto",cop(J.budget))}`+
+        jActs([["¿En qué gasto más?","¿En qué categoría gasto más?"]]);
+    }
+    case "queda": return J.budget<=0 ? `<p>Configura tu ingreso para calcular lo que te queda.</p>` :
+      `<p>Te quedan <b class="${J.left<0?"neg":""}">${cop(J.left)}</b> del presupuesto variable, para ${J.daysLeft} día(s).</p>`+
+      jRow("Ingreso",cop(J.income))+jRow("Ahorro",cop(J.saving))+jRow("Fijos y cuotas",cop(J.fixedTotal))+jRow("Gastado",cop(J.spent));
+    case "cat": {
+      const by = {}; J.exps.forEach(e=>by[e.cat]=(by[e.cat]||0)+ +e.amount);
+      const l = Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      return l.length ? `<p>Tus mayores gastos este mes:</p>`+l.map(([c,v])=>jRow(catIcon(c)+" "+esc(c),cop(v)+" · "+Math.round(v/J.spent*100)+"%")).join("")
+                      : `<p>Aún no hay gastos registrados este mes.</p>`;
+    }
+    case "fijos": {
+      if(!S.fixed.length) return `<p>No tienes gastos fijos registrados. Agrégalos en la pestaña <b>Fijos</b>.</p>`;
+      if(!J.pend.length) return `<p>Todos tus gastos fijos de este mes están pagados. ✅</p>`;
+      return `<p>Fijos pendientes este mes (${cop(sum(J.pend.map(f=>+f.amount)))}):</p>`+
+        J.pend.sort((a,b)=>a.day-b.day).map(f=>jRow(esc(f.name)+" · día "+f.day,cop(f.amount))).join("");
+    }
+    case "ahorro": return J.income<=0 ? `<p>Configura tu ingreso para calcular el ahorro.</p>` :
+      `<p>Tu meta es ahorrar <b>${cop(J.saving)}</b> este mes (${+S.savePct||0}% de tu ingreso). Lo ideal es separarlo apenas recibas el ingreso.</p>`+
+      jRow("Después de ahorro y fijos",cop(J.budget)+" para gastar");
+    case "compras": {
+      const w = S.wish.filter(x=>!x.bought);
+      if(!w.length) return `<p>No tienes compras planeadas. Agrégalas en la pestaña <b>Compras</b>.</p>`;
+      return `<p>Compras planeadas y si te alcanzan hoy:</p>`+w.map(x=>jRow(esc(x.name),cop(x.price)+(x.price<=J.left?" ✅":" ⏳"))).join("");
+    }
+    case "proy": return J.spent<=0 ? `<p>Aún no hay gastos para proyectar el cierre.</p>` :
+      `<p>A tu ritmo actual cerrarás el mes con <b>${cop(J.projected)}</b> en gastos variables.</p>${jRow("Presupuesto",cop(J.budget))}${jRow("Diferencia",`<span class="${J.projected>J.budget?"neg":"pos"}">${cop(J.budget-J.projected)}</span>`)}`;
+    case "promedio": return J.budget<=0 ? `<p>Configura tu ingreso para calcular tu presupuesto diario.</p>` :
+      `<p>Tu <b>presupuesto diario promedio</b> es <b>${cop(J.avgPlan)}</b> (${cop(J.budget)} ÷ ${J.dim} días).</p>`+
+      jRow("Máximo del mes",cop(Math.max(J.budget,0)))+jRow("Máximo para hoy",cop(Math.max(J.allowance,0)))+jRow("Llevas hoy",cop(J.todaySpent))+
+      jRow("Gasto diario promedio real",`<span class="${J.avgReal>J.avgPlan?"neg":""}">${cop(J.avgReal)}</span>`)+
+      (J.avgReal>J.avgPlan ? `<p style="margin-top:8px">⚠️ Estás gastando por encima del promedio planeado.</p>` : `<p style="margin-top:8px">✅ Vas por debajo del promedio planeado.</p>`);
+    case "topes": {
+      const cs = Object.entries(S.caps).filter(([,v])=>+v);
+      if(!cs.length) return `<p>No tienes topes definidos. Dime, por ejemplo: «pon tope de 400 mil a Comida».</p>`;
+      return `<p>Tus topes de este mes:</p>`+cs.map(([c,v])=>{ const sp = sum(J.exps.filter(e=>e.cat===c).map(e=>+e.amount)), p = sp/v;
+        return jRow(catIcon(c)+" "+esc(c), cop(sp)+" / "+cop(v)+" · "+Math.round(p*100)+"%"+(p>=1?" 🚨":p>=(+S.alertPct||80)/100?" ⚠️":"")); }).join("");
+    }
+    case "credito": {
+      if(!S.credits.length) return `<p>No tienes compras a crédito registradas. Dime, por ejemplo: «agrega crédito Nevera 2 millones 12 meses».</p>`;
+      const cm = today().slice(0,7), act = S.credits.filter(c=>credActivo(c,cm)), cu = cuotasEn(cm), nx = cuotasEn(shiftMonth(cm,1));
+      return `<p>Tus compras a crédito:</p>`+S.credits.map(c=>{ const d = mDiff(c.start,cm);
+        const est = d<0 ? "empieza "+monthLabel(c.start) : d>=+c.months ? "terminado" : `cuota ${d+1} de ${c.months}`;
+        return jRow(esc(c.name)+" · "+est, cop(cuota(c))+"/mes"); }).join("")+
+        `<p style="margin-top:8px">Este mes se cobran <b>${cop(cu)}</b>${J.income>0?` (${Math.round(cu/J.income*100)}% de tu ingreso)`:""}. El próximo mes: <b>${cop(nx)}</b>.</p>`+
+        jRow("Saldo pendiente total",cop(sum(S.credits.map(c=>credRestantes(c,cm)*cuota(c)))));
+    }
+    case "ayuda": return `<p>Soy <b>JARVIS</b>, tu asistente de finanzas. Respondo con tus propios datos y no invento cifras. Puedes preguntarme:</p>
+      <ul><li>«¿Cómo voy?» · «¿Qué alertas hay?»</li><li>«¿Cuánto puedo gastar hoy?»</li><li>«¿Puedo gastar 80.000?»</li><li>«¿Qué fijos vencen?»</li><li>«¿En qué gasto más?»</li><li>«Gasté 25.000 en almuerzo» · «borra el último gasto»</li><li>«Agrega fijo Gimnasio 80 mil día 5» · «pagué el arriendo»</li><li>«Agrega a compras Zapatos 200 mil» · «quita Zapatos de la lista»</li><li>«Pon tope de 400 mil a Comida» · «mi ingreso es 5 millones»</li><li>«¿Cuál es mi presupuesto diario y el máximo?»</li><li>«Agrega crédito Nevera 2 millones 12 meses» · «¿qué cuotas tengo?»</li><li>«Exporta a Excel». Todo cambio se puede deshacer.</li></ul>`;
+    default: return `<p>No entendí esa pregunta, y prefiero decírtelo antes que inventar. Prueba con una de estas:</p>`+
+      jActs([["¿Cómo voy?","¿Cómo voy?"],["Alertas","¿Qué alertas hay?"],["¿Cuánto puedo gastar hoy?","¿Cuánto puedo gastar hoy?"],["Ayuda","ayuda"]]);
+  }
+}
+
+// ----- Interfaz flotante -----
+function jMount(){
+  const w = document.createElement("div");
+  w.innerHTML = `
+  <div id="jPop"><span class="x" id="jPopX">✕</span><p id="jPopTxt"></p></div>
+  <button id="jBtn" aria-label="Abrir JARVIS"><div class="orb" id="jOrb"></div><em class="badge" id="jBadge"></em></button>
+  <div id="jPanel" role="dialog" aria-label="JARVIS">
+    <div class="jh"><div class="orb sm" id="jOrb2"></div>
+      <div><h3>JARVIS</h3><p><i></i>Asistente de tus finanzas</p></div><button id="jClose" aria-label="Cerrar">✕</button></div>
+    <div id="jChat"></div>
+    <div id="jFoot">
+      <div id="jSug"></div>
+      <div class="jrow"><input id="jIn" placeholder="Pregúntame algo…" autocomplete="off" enterkeyhint="send"><button id="jSend" aria-label="Enviar">➤</button></div>
+    </div>
+  </div>`;
+  Array.from(w.children).forEach(c=>document.body.appendChild(c));
+  const $ = id => document.getElementById(id);
+  $("jBtn").onclick = jToggle; $("jClose").onclick = jToggle;
+  $("jPopX").onclick = () => $("jPop").classList.remove("on");
+  $("jPopTxt").onclick = jToggle;
+  $("jSend").onclick = jEnviar;
+  $("jIn").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); jEnviar(); } });
+  $("jChat").addEventListener("click", e=>{ const b=e.target.closest("button[data-q]"); if(b) jPregunta(b.dataset.q); });
+  $("jSug").innerHTML = [["¿Cómo voy?","¿Cómo voy?"],["Alertas","¿Qué alertas hay?"],["Hoy","¿Cuánto puedo gastar hoy?"],["Promedio","¿Cuál es mi presupuesto diario y el máximo?"],["Topes","¿Cómo van mis topes?"],["Créditos","¿Qué compras a crédito tengo?"],["Fijos","¿Qué fijos vencen?"],["Categorías","¿En qué categoría gasto más?"],["Ayuda","ayuda"]]
+    .map(([t,q])=>`<button data-q="${esc(q)}">${esc(t)}</button>`).join("");
+  $("jSug").addEventListener("click", e=>{ const b=e.target.closest("button[data-q]"); if(b) jPregunta(b.dataset.q); });
+}
+function jMsg(cls, html, isText){
+  const c = document.getElementById("jChat"), d = document.createElement("div");
+  d.className = "jm "+cls; isText ? d.textContent = html : d.innerHTML = html;
+  c.appendChild(d); c.scrollTop = c.scrollHeight; return d;
+}
+function jPregunta(q){
+  q = (q||"").trim(); if(!q) return;
+  if(q==="__voz"){ speakJarvis(); return; }
+  if(q==="__undo"){
+    if(!jUndoSnap) return jMsg("ia","<p>No hay nada para deshacer.</p>");
+    try{ S = Object.assign(defaults(), JSON.parse(jUndoSnap)); }catch(e){ return; }
+    jUndoSnap = null; save(); render();
+    return jMsg("ia","<p>↩️ Deshecho. Todo quedó como estaba antes.</p>");
+  }
+  if(q.indexOf("__del:")===0){
+    const e = S.expenses.find(x=>x.id===q.slice(6));
+    if(!e) return jMsg("ia","<p>Ese gasto ya no existe.</p>");
+    jSnap(); S.expenses = S.expenses.filter(x=>x.id!==e.id);
+    return jMsg("ia", jCommit(`<p>✅ Eliminé el gasto <b>${esc(e.note||e.cat)}</b> · ${cop(e.amount)}.</p>`));
+  }
+  jMsg("yo", q, true);
+  setTimeout(()=>{
+    let r; try{ r = jAccion(q); if(r==null) r = jResponder(q); }
+    catch(err){ r = "<p>Tuve un problema con esa orden y no cambié nada. Prueba de otra forma.</p>"; }
+    jMsg("ia", r);
+  }, 280);
+}
+function jEnviar(){ const i=document.getElementById("jIn"); const q=i.value; i.value=""; jPregunta(q); }
+function jToggle(){
+  const p = document.getElementById("jPanel"), open = !p.classList.contains("on");
+  p.classList.toggle("on", open);
+  document.getElementById("jPop").classList.remove("on");
+  if(open){
+    if(!document.getElementById("jChat").children.length){
+      const J = jarvis();
+      jMsg("ia", `<p>${esc(J.headline)}</p>`+(jUrgent(J).length?`<p>Tengo <b>${jUrgent(J).length}</b> alerta(s) para ti:</p>`+jUrgent(J).slice(0,2).map(jAlert).join(""):"")+
+        jActs([["¿Cómo voy?","¿Cómo voy?"],["Ver alertas","¿Qué alertas hay?"]]));
+    }
+    setTimeout(()=>document.getElementById("jIn").focus(),60);
+  }
+}
+// Actualiza el color del orbe, el contador y el globo de aviso (se llama en cada render)
+function jRefresh(){
+  const J = jarvis(), n = jUrgent(J).length;
+  ["jOrb","jOrb2"].forEach(id=>{ const o=document.getElementById(id); if(o) o.className = "orb"+(id==="jOrb2"?" sm":"")+(J.level==="green"?"":" "+J.level); });
+  const b = document.getElementById("jBadge"); if(b) b.textContent = n ? n : "";
+  try{ if(navigator.setAppBadge){ n ? navigator.setAppBadge(n) : navigator.clearAppBadge(); } }catch(e){}
+  if(!jShown){
+    jShown = true;
+    const pop = document.getElementById("jPop");
+    document.getElementById("jPopTxt").innerHTML = n ? `Hola, soy <b>JARVIS</b>. Tengo <b>${n}</b> alerta${n===1?"":"s"} para ti.` : `Hola, soy <b>JARVIS</b>. ¿Te cuento cómo vas?`;
+    setTimeout(()=>{ if(!document.getElementById("jPanel").classList.contains("on")) pop.classList.add("on"); }, 900);
+    setTimeout(()=>pop.classList.remove("on"), 10000);
+  }
+}
+window.jOpen = () => { if(!document.getElementById("jPanel").classList.contains("on")) jToggle(); };
+window.speakJarvis = () => {
+  const J = jarvis();
+  const txt = J.headline+" "+J.alerts.filter(a=>RANK[a.lvl]>=2).slice(0,4).map(a=>a.title+". "+a.text.replace(/\$/g,"")).join(" ");
+  if(!("speechSynthesis" in window)) return alert("Tu navegador no soporta voz.");
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt); u.lang = "es-CO"; speechSynthesis.speak(u);
+};
+
+// ---------- Acciones ----------
+window.delExpense = id => { if(!confirm("¿Eliminar este gasto?")) return; S.expenses=S.expenses.filter(e=>e.id!==id); save(); render(); };
+window.delFixed = id => { if(!confirm("¿Eliminar este gasto fijo?")) return; S.fixed=S.fixed.filter(f=>f.id!==id); save(); render(); };
+window.delWish = id => { if(!confirm("¿Eliminar de la lista?")) return; S.wish=S.wish.filter(w=>w.id!==id); save(); render(); };
+window.togglePaid = id => {
+  const a = S.paid[month]||(S.paid[month]=[]);
+  const i = a.indexOf(id); i>=0 ? a.splice(i,1) : a.push(id);
+  save(); render();
+};
+window.toggleBought = id => {
+  const w = S.wish.find(x=>x.id===id); if(!w) return;
+  if(!w.bought){
+    w.bought = true;
+    const e = {id:uid(),amount:+w.price,cat:"Compras",note:w.name,date:today()};
+    w.expenseId = e.id; S.expenses.push(e);
+  } else {
+    w.bought = false;
+    S.expenses = S.expenses.filter(e=>e.id!==w.expenseId); delete w.expenseId;
+  }
+  save(); render();
+};
+
+// ---------- Hojas (formularios) ----------
+function openSheet(html){
+  closeSheet();
+  const bg = document.createElement("div");
+  bg.className = "sheet-bg"; bg.id = "sheet";
+  bg.innerHTML = `<div class="sheet">${html}</div>`;
+  bg.addEventListener("click", e=>{ if(e.target===bg) closeSheet(); });
+  document.body.appendChild(bg);
+}
+window.closeSheet = () => { const s=document.getElementById("sheet"); if(s) s.remove(); };
+const val = id => document.getElementById(id).value;
+const num = id => parseFloat(String(val(id)).replace(/[^\d.]/g,""))||0;
+
+let selCat = "Comida";
+window.pickCat = c => { selCat=c; document.querySelectorAll(".cats button").forEach(b=>b.classList.toggle("on",b.dataset.c===c)); };
+
+window.sheetExpense = () => {
+  selCat = "Comida";
+  openSheet(`<h3>Nuevo gasto</h3>
+    <label>Monto (COP)</label><input id="f-amt" inputmode="numeric" placeholder="0" autofocus>
+    <label>Categoría</label>
+    <div class="cats">${CATS.map(([n,i])=>`<button data-c="${n}" class="${n===selCat?"on":""}" onclick="pickCat('${n}')">${i} ${n}</button>`).join("")}</div>
+    <label>Nota (opcional)</label><input id="f-note" placeholder="Ej: almuerzo">
+    <label>Fecha</label><input id="f-date" type="date" value="${today()}">
+    <div style="height:14px"></div><button class="btn" onclick="addExpense()">Guardar gasto</button>`);
+  setTimeout(()=>document.getElementById("f-amt").focus(),50);
+};
+window.addExpense = () => {
+  const amount = num("f-amt"); if(amount<=0) return alert("Ingresa un monto.");
+  const date = val("f-date")||today();
+  S.expenses.push({id:uid(),amount,cat:selCat,note:val("f-note").trim(),date});
+  month = date.slice(0,7);
+  save(); closeSheet(); render();
+};
+
+window.sheetFixed = () => {
+  openSheet(`<h3>Nuevo gasto fijo</h3>
+    <label>Nombre</label><input id="f-name" placeholder="Ej: Arriendo">
+    <label>Monto mensual (COP)</label><input id="f-amt" inputmode="numeric" placeholder="0">
+    <label>Día de vencimiento</label><input id="f-day" inputmode="numeric" placeholder="1 a 31" maxlength="2">
+    <div style="height:14px"></div><button class="btn" onclick="addFixed()">Guardar</button>`);
+};
+window.addFixed = () => {
+  const name = val("f-name").trim(), amount = num("f-amt");
+  const day = Math.min(31,Math.max(1,parseInt(val("f-day"))||1));
+  if(!name||amount<=0) return alert("Completa nombre y monto.");
+  S.fixed.push({id:uid(),name,amount,day});
+  save(); closeSheet(); render();
+};
+
+window.sheetWish = () => {
+  openSheet(`<h3>Planear compra</h3>
+    <label>¿Qué quieres comprar?</label><input id="f-name" placeholder="Ej: Zapatos">
+    <label>Precio estimado (COP)</label><input id="f-amt" inputmode="numeric" placeholder="0">
+    <label>Prioridad</label><select id="f-prio"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select>
+    <div style="height:14px"></div><button class="btn" onclick="addWish()">Guardar</button>`);
+};
+window.addWish = () => {
+  const name = val("f-name").trim(), price = num("f-amt");
+  if(!name||price<=0) return alert("Completa nombre y precio.");
+  S.wish.push({id:uid(),name,price,prio:val("f-prio"),bought:false});
+  save(); closeSheet(); render();
+};
+
+window.sheetConfig = () => {
+  openSheet(`<h3>Configuración</h3>
+    <label>Ingreso mensual (COP)</label><input id="f-inc" inputmode="numeric" value="${S.income||""}" placeholder="0">
+    <label>% de ahorro</label><input id="f-pct" inputmode="numeric" value="${S.savePct}" placeholder="20">
+    <label>Avisarme cuando use este % de un tope o del presupuesto</label><input id="f-ap" inputmode="numeric" value="${S.alertPct||80}" placeholder="80">
+    <div class="muted" id="f-prev" style="margin-top:8px"></div>
+    <div style="height:14px"></div><button class="btn" onclick="saveConfig()">Guardar</button>
+    <div style="height:10px"></div><button class="btn sec" onclick="sheetCaps()">🎯 Topes por categoría</button>
+    <div style="height:10px"></div><button class="btn sec" onclick="exportExcel()">📊 Exportar a Excel</button>
+    <div style="height:10px"></div><button class="btn sec" onclick="exportData()">⬇️ Copia de respaldo (JSON)</button>
+    <div style="height:10px"></div><button class="btn sec" onclick="document.getElementById('imp').click()">⬆️ Importar respaldo</button>
+    <input id="imp" type="file" accept="application/json" style="display:none" onchange="importData(this)">`);
+  const prev = () => { const i=num("f-inc"), p=num("f-pct"); document.getElementById("f-prev").textContent = i? `Ahorro mensual: ${cop(i*p/100)}` : ""; };
+  document.getElementById("f-inc").oninput = prev; document.getElementById("f-pct").oninput = prev; prev();
+};
+window.saveConfig = () => {
+  S.income = num("f-inc"); S.savePct = Math.min(100,num("f-pct"));
+  S.alertPct = Math.max(50,Math.min(99,Math.round(num("f-ap"))||80));
+  save(); closeSheet(); render();
+};
+window.sheetCaps = () => {
+  openSheet(`<h3>Topes por categoría</h3>
+    <div class="muted">Máximo mensual por categoría. Déjalo vacío si no quieres tope. Te aviso desde el ${S.alertPct||80}%.</div>`+
+    CATS.map(([c,i],k)=>`<label>${i} ${c}</label><input id="cap-${k}" inputmode="numeric" value="${S.caps[c]||""}" placeholder="Sin tope">`).join("")+
+    `<div style="height:14px"></div><button class="btn" onclick="saveCaps()">Guardar topes</button>`);
+};
+window.saveCaps = () => {
+  CATS.forEach(([c],k)=>{ const v = num("cap-"+k); if(v>0) S.caps[c]=v; else delete S.caps[c]; });
+  save(); closeSheet(); render();
+};
+window.sheetCredit = () => {
+  openSheet(`<h3>Compra a crédito</h3>
+    <label>¿Qué compraste?</label><input id="c-name" placeholder="Ej: Nevera">
+    <label>Monto que estás financiando (COP)</label><input id="c-total" inputmode="numeric" placeholder="0">
+    <label>¿En cuántos meses se cobra?</label><input id="c-months" inputmode="numeric" placeholder="12" maxlength="3">
+    <label>Primer mes de cobro</label><input id="c-start" type="month" value="${today().slice(0,7)}">
+    <label>Cuota mensual real (opcional, si incluye intereses)</label><input id="c-cuota" inputmode="numeric" placeholder="Déjalo vacío para dividir en partes iguales">
+    <div class="muted" id="c-prev" style="margin-top:8px"></div>
+    <div style="height:14px"></div><button class="btn" onclick="saveCredit()">Guardar</button>`);
+  const prev = () => { const t=num("c-total"), m=Math.round(num("c-months")), q=num("c-cuota");
+    document.getElementById("c-prev").textContent = (t&&m) ? `Cuota: ${cop(q||t/m)} al mes durante ${m} meses${q&&q*m>t?` · intereses aprox. ${cop(q*m-t)}`:""}` : ""; };
+  ["c-total","c-months","c-cuota"].forEach(id=>document.getElementById(id).oninput = prev);
+};
+window.saveCredit = () => {
+  const name = val("c-name").trim(), total = num("c-total"), months = Math.round(num("c-months")), start = val("c-start")||today().slice(0,7);
+  if(!name||total<=0||months<1) return alert("Completa la compra, el monto y los meses.");
+  S.credits.push({id:uid(),name,total,months:Math.min(months,360),start,cuota:num("c-cuota")||0});
+  save(); closeSheet(); render();
+};
+window.delCredit = id => { if(!confirm("¿Eliminar esta compra a crédito?")) return; S.credits = S.credits.filter(c=>c.id!==id); save(); render(); };
+
+window.exportData = () => {
+  const blob = new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "mis-gastos-respaldo.json"; a.click();
+};
+window.importData = input => {
+  const f = input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => { try{ S = Object.assign(defaults(), JSON.parse(r.result)); save(); closeSheet(); render(); alert("Respaldo importado."); }catch(e){ alert("Archivo inválido."); } };
+  r.readAsText(f);
+};
+
+jMount();
+render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
